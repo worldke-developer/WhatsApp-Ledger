@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>WhatsApp Ledger</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', 'Inter', sans-serif;
+        }
+
+        body {
+            background: #ece5dd;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        /* WhatsApp theme */
+        .wa-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .wa-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .wa-header {
+            background: #075e54;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .wa-header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+        }
+
+        .wa-header h1 span {
+            font-weight: 400;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .btn-wa {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-wa:hover {
+            background: #128C7E;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-wa {
+            background: white;
+            color: #075e54;
+            border: 1px solid #ddd;
+        }
+
+        .btn-outline-wa:hover {
+            background: #f0f2f5;
+        }
+
+        .btn-danger-wa {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-wa {
+            background: #dcf8c5;
+            color: #075e54;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .sidebar {
+            flex: 1.2;
+            min-width: 260px;
+        }
+
+        .main-panel {
+            flex: 2.8;
+            min-width: 300px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 40px;
+            border: 1px solid #e2e8f0;
+            background: #fefefe;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+
+        .customer-list {
+            max-height: 560px;
+            overflow-y: auto;
+        }
+
+        .customer-item {
+            padding: 12px 16px;
+            border-radius: 20px;
+            margin-bottom: 8px;
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .customer-item.active {
+            background: #dcf8c5;
+            border-left: 4px solid #25D366;
+        }
+
+        .debt-amount {
+            font-weight: 700;
+            color: #075e54;
+        }
+
+        .stat-grid {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 12px 20px;
+            flex: 1;
+            text-align: center;
+            border: 1px solid #eef2f6;
+        }
+
+        .order-row, .payment-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f2f5;
+            padding: 12px 0;
+            font-size: 0.85rem;
+        }
+
+        .credit-warning {
+            background: #ffe8e6;
+            color: #c0392b;
+            border-radius: 32px;
+            padding: 8px 16px;
+            margin: 12px 0;
+            font-size: 0.8rem;
+        }
+
+        .pay-early {
+            background: #fff3e0;
+            border-radius: 32px;
+            padding: 8px 16px;
+            margin: 12px 0;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        /* Customer portal special */
+        .customer-portal-card {
+            max-width: 700px;
+            margin: 20px auto;
+        }
+
+        .whatsapp-bubble {
+            background: #dcf8c5;
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        hr {
+            margin: 16px 0;
+            border-color: #eef2f6;
+        }
+
+        @media (max-width: 760px) {
+            body { padding: 8px; }
+            .wa-header { padding: 12px 16px; }
+        }
+    </style>
+</head>
+<body>
+<div id="rootApp"></div>
+
+<script>
+    // ---------- DATA ----------
+    let customers = [];
+    let orders = [];
+    let payments = [];
+    let storeWhatsAppNumber = "";   // store owner number for order requests
+
+    // UI state
+    let adminLoggedIn = false;
+    let selectedCustomerId = null;
+
+    // Storage keys
+    const STORAGE = {
+        customers: "bnpl_customers_v5",
+        orders: "bnpl_orders_v5",
+        payments: "bnpl_payments_v5",
+        storeNumber: "bnpl_store_whatsapp_v5"
+    };
+
+    function loadData() {
+        customers = JSON.parse(localStorage.getItem(STORAGE.customers) || "[]");
+        orders = JSON.parse(localStorage.getItem(STORAGE.orders) || "[]");
+        payments = JSON.parse(localStorage.getItem(STORAGE.payments) || "[]");
+        storeWhatsAppNumber = localStorage.getItem(STORAGE.storeNumber) || "";
+
+        if (customers.length === 0) {
+            const id1 = Date.now() + 1;
+            const id2 = Date.now() + 2;
+            customers = [
+                { id: id1, name: "Robo", phone: "923022022789", creditLimit: 150 },
+                // { id: id2, name: "Cafe Daily", phone: "+9876543210", creditLimit: 80 }
+            ];
+            orders = [
+                { id: Date.now()+10, customerId: id1, amount: 24.50, description: "Veggies & milk", date: new Date().toISOString() },
+                { id: Date.now()+11, customerId: id1, amount: 12.30, description: "Snacks", date: new Date(Date.now()-86400000).toISOString() },
+                { id: Date.now()+12, customerId: id2, amount: 8.90, description: "Coffee & pastry", date: new Date().toISOString() }
+            ];
+            payments = [
+                { id: Date.now()+20, customerId: id1, amount: 10.00, note: "Cash", date: new Date().toISOString() }
+            ];
+            saveAllData();
+        }
+    }
+
+    function saveAllData() {
+        localStorage.setItem(STORAGE.customers, JSON.stringify(customers));
+        localStorage.setItem(STORAGE.orders, JSON.stringify(orders));
+        localStorage.setItem(STORAGE.payments, JSON.stringify(payments));
+        localStorage.setItem(STORAGE.storeNumber, storeWhatsAppNumber);
+    }
+
+    // helpers
+    function getCustomerOrders(custId) { return orders.filter(o => o.customerId === custId).sort((a,b)=>new Date(b.date)-new Date(a.date)); }
+    function getCustomerPayments(custId) { return payments.filter(p => p.customerId === custId).sort((a,b)=>new Date(b.date)-new Date(a.date)); }
+    function getTotalDebt(custId) {
+        const totalOrders = getCustomerOrders(custId).reduce((s,o)=>s+o.amount,0);
+        const totalPaid = getCustomerPayments(custId).reduce((s,p)=>s+p.amount,0);
+        return Math.max(0, totalOrders - totalPaid);
+    }
+    function getOrderCount(custId) { return getCustomerOrders(custId).length; }
+    function getCustomerCreditLimit(custId) { const c = customers.find(c => c.id === custId); return c ? c.creditLimit : 100; }
+    function isCreditLimitReached(custId) { const debt = getTotalDebt(custId); const limit = getCustomerCreditLimit(custId); return debt >= limit; }
+    function getRemainingCredit(custId) { const limit = getCustomerCreditLimit(custId); const debt = getTotalDebt(custId); return Math.max(0, limit - debt); }
+
+    // business logic
+    function addOrder(custId, amount, description) {
+        if (!custId || isNaN(amount) || amount <= 0) return false;
+        const currentDebt = getTotalDebt(custId);
+        const limit = getCustomerCreditLimit(custId);
+        if (currentDebt + amount > limit) {
+            alert(`❌ Credit limit exceeded! Current debt: $${currentDebt.toFixed(2)} | Limit: $${limit.toFixed(2)}`);
+            return false;
+        }
+        orders.push({ id: Date.now(), customerId: custId, amount: parseFloat(amount), description: description.trim() || "WhatsApp order", date: new Date().toISOString() });
+        saveAllData();
+        return true;
+    }
+
+    function addPayment(custId, amount, note) {
+        if (!custId || isNaN(amount) || amount <= 0) return false;
+        const currentDebt = getTotalDebt(custId);
+        if (amount > currentDebt) { alert(`Payment cannot exceed current debt ($${currentDebt.toFixed(2)})`); return false; }
+        payments.push({ id: Date.now(), customerId: custId, amount: parseFloat(amount), note: note.trim() || "payment", date: new Date().toISOString() });
+        saveAllData();
+        return true;
+    }
+
+    function deleteOrder(orderId, custId) { if(confirm("Delete order?")) { orders = orders.filter(o=> o.id !== orderId); saveAllData(); return true; } return false; }
+    function deletePayment(paymentId) { if(confirm("Delete payment?")) { payments = payments.filter(p=> p.id !== paymentId); saveAllData(); return true; } return false; }
+    function addCustomer(name, phone, creditLimit=100) { if(!name.trim()) return false; customers.push({ id: Date.now(), name: name.trim(), phone: phone?.trim() || "", creditLimit: parseFloat(creditLimit) || 100 }); saveAllData(); return true; }
+    function updateCustomer(custId, newName, newPhone, newLimit) { let c = customers.find(c=>c.id === custId); if(c) { c.name = newName.trim(); c.phone = newPhone?.trim() || ""; c.creditLimit = parseFloat(newLimit) || 100; saveAllData(); return true; } return false; }
+    function deleteCustomer(custId) { if(confirm("Delete customer and all orders/payments?")) { customers = customers.filter(c=> c.id !== custId); orders = orders.filter(o=> o.customerId !== custId); payments = payments.filter(p=> p.customerId !== custId); if(selectedCustomerId === custId) selectedCustomerId = null; saveAllData(); return true; } return false; }
+
+    // PDF generation and send via WhatsApp
+    async function generatePDFBlob(customer) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const ordersList = getCustomerOrders(customer.id);
+        const paymentsList = getCustomerPayments(customer.id);
+        const debt = getTotalDebt(customer.id);
+        const limit = customer.creditLimit;
+        const remaining = getRemainingCredit(customer.id);
+        
+        doc.setFontSize(18); doc.text("BNPL STATEMENT - CREDIT INVOICE", 14, 20);
+        doc.setFontSize(12); doc.text(`Customer: ${customer.name}`, 14, 32);
+        doc.text(`Phone: ${customer.phone || "—"}`, 14, 40);
+        doc.text(`Credit Limit: $${limit.toFixed(2)} | Remaining: $${remaining.toFixed(2)} | Current Due: $${debt.toFixed(2)}`, 14, 48);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 56);
+        
+        const orderRows = ordersList.map(o => [new Date(o.date).toLocaleDateString(), o.description, `$${o.amount.toFixed(2)}`]);
+        doc.autoTable({ startY: 68, head: [["Date", "Item", "Amount"]], body: orderRows, theme: 'striped', headStyles: { fillColor: [7,94,84] } });
+        let finalY = doc.lastAutoTable.finalY + 8;
+        const paymentRows = paymentsList.map(p => [new Date(p.date).toLocaleDateString(), p.note, `$${p.amount.toFixed(2)}`]);
+    if(paymentRows.length) {
+            doc.autoTable({ startY: finalY, head: [["Date", "Payment Note", "Amount Paid"]], body: paymentRows, theme: 'plain', headStyles: { fillColor: [100,116,139] } });
+            finalY = doc.lastAutoTable.finalY + 8;
+        }
+        doc.setFontSize(11); doc.text(`TOTAL OUTSTANDING: $${debt.toFixed(2)}`, 14, finalY+4);
+        if(debt === 0) doc.text("Fully paid – thank you!", 14, finalY+12);
+        else doc.text("Pay early to free up credit.", 14, finalY+12);
+        
+        return doc.output('blob');
+    }
+
+    async function sendPDFviaWhatsApp(customer) {
+        if(!customer.phone) { alert("Customer has no phone number. Edit customer to add phone."); return; }
+        const pdfBlob = await generatePDFBlob(customer);
+        // We'll create a temporary download + share via WhatsApp using data URL? Actually WhatsApp Web/App cannot directly send file via URL scheme.
+        // The best approach: generate PDF, download it, then instruct user to share. But we can create a link that pre-fills message with a link to download.
+        // For simplicity and reliability: generate PDF, save as file, then open WhatsApp with a note that PDF is attached manually? But users expect "send PDF".
+        // Alternative: Use WhatsApp API? Not possible client-side. So we'll generate PDF, auto-download, and open WhatsApp with a note: "Invoice PDF attached separately".
+        // More user-friendly: download PDF, then open WhatsApp chat so user can attach the downloaded file.
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${customer.name.replace(/\s/g,'_')}_invoice.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        const message = `📄 *PDF Invoice attached* (downloaded automatically). Your current balance: $${getTotalDebt(customer.id).toFixed(2)}. Please find the PDF file in your downloads.`;
+        const waUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank');
+        alert("PDF downloaded. WhatsApp chat opened — please attach the PDF file from your downloads folder.");
+    }
+
+    function sendPortalLink(customer) {
+        if(!customer.phone) { alert("Customer has no phone number."); return; }
+        const portalUrl = `${window.location.href.split('?')[0]}?phone=${encodeURIComponent(customer.phone)}`;
+        const message = `🔗 *Your Live Invoice Portal* – Bookmark this link!%0AAlways shows your current balance, orders and payments, updated instantly by the store.%0A👉 ${portalUrl}%0A📊 Current debt: $${getTotalDebt(customer.id).toFixed(2)} / Limit $${customer.creditLimit}`;
+        window.open(`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+    }
+
+    function quickWhatsAppOrder(customer) {
+        if(!storeWhatsAppNumber) { alert("Store WhatsApp number not set. Click ⚙️ Settings to add."); return; }
+        const storeNum = storeWhatsAppNumber.replace(/\D/g, '');
+        if(!storeNum) { alert("Invalid store number."); return; }
+        const message = `🛍️ *NEW ORDER REQUEST* (Credit account)%0A👤 Customer: ${customer.name}%0A📞 Phone: ${customer.phone || '—'}%0A💰 Debt: $${getTotalDebt(customer.id).toFixed(2)} / Limit $${customer.creditLimit}%0A%0A📦 Add items below:%0A- Item: ______  Price: $______`;
+        window.open(`https://wa.me/${storeNum}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
+    // ----- ADMIN DASHBOARD (separate, no customer portal mix) -----
+    function renderAdminLogin() {
+        return `<div class="wa-card" style="max-width:450px; margin:40px auto; text-align:center;">
+            <div class="wa-header"><h1>🔐 Store Access</h1></div>
+            <div style="padding: 24px;">
+                <input type="password" id="adminPassword" placeholder="Enter password" class="search-input">
+                <button class="btn-wa" id="loginAdminBtn" style="width:100%;">Login to Dashboard</button>
+                <div style="margin-top: 20px; font-size:0.8rem;">Demo: <strong>store123</strong></div>
+            </div>
+        </div>`;
+    }
+
+    function renderAdminDashboard() {
+        const totalOutstanding = customers.reduce((s,c)=> s+getTotalDebt(c.id),0);
+        const selected = customers.find(c=>c.id === selectedCustomerId);
+        const selectedOrders = selected ? getCustomerOrders(selected.id) : [];
+        const selectedPayments = selected ? getCustomerPayments(selected.id) : [];
+        const debt = selected ? getTotalDebt(selected.id) : 0;
+        const limitReached = selected ? isCreditLimitReached(selected.id) : false;
+        const remainingCredit = selected ? getRemainingCredit(selected.id) : 0;
+
+        return `
+        <div class="wa-container">
+            <div class="wa-card">
+                <div class="wa-header">
+                    <h1>WhatsApp Ledger<span> Developed by Robo</span></h1>
+                    <div style="display:flex; gap:8px;">
+                        <button id="settingsBtn" class="btn-outline-wa btn-wa" style="background:white;">⚙️ Store Number</button>
+                        <button id="logoutAdminBtn" class="btn-danger-wa btn-wa">Logout</button>
+                    </div>
+                </div>
+                <div style="padding: 20px;">
+                    <div class="stat-grid">
+                        <div class="stat-box"><strong>💰 Total Due</strong><br><span style="font-size:1.6rem;">$${totalOutstanding.toFixed(2)}</span></div>
+                        <div class="stat-box"><strong>👥 Customers</strong><br>${customers.length}</div>
+                        <div class="stat-box"><strong>📦 Active Debts</strong><br>${customers.filter(c=>getTotalDebt(c.id)>0).length}</div>
+                    </div>
+                    <div class="flex-row">
+                        <div class="sidebar wa-card" style="padding:16px;">
+                            <h3>👥 Customers</h3>
+                            <input type="text" id="customerSearch" class="search-input" placeholder="Search name / phone">
+                            <button id="addCustomerBtn" class="btn-wa" style="width:100%; margin-bottom:16px;">+ New Customer</button>
+                            <div class="customer-list" id="customerListContainer">
+                                ${customers.map(c => {
+                                    const debtC = getTotalDebt(c.id);
+                                    const activeClass = selectedCustomerId === c.id ? 'active' : '';
+                                    return `<div class="customer-item ${activeClass}" data-cust-id="${c.id}">
+                                        <div><strong>${escapeHtml(c.name)}</strong><br><span style="font-size:0.7rem;">${c.phone || '—'} | Limit $${c.creditLimit}</span></div>
+                                        <div class="debt-amount">$${debtC.toFixed(2)}</div>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                        <div class="main-panel wa-card" style="padding:20px;">
+                            ${selected ? `
+                                <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                                    <div><h2>${escapeHtml(selected.name)} <span class="badge-wa">${selected.phone || 'no phone'}</span></h2>
+                                <br><div><span class="badge-wa">💳 Limit $${selected.creditLimit}</span> <span class="badge-wa">Remaining $${remainingCredit.toFixed(2)}</span></div><br></div>
+                                    <div><button id="editCustomerBtn" class="btn-outline-wa btn-wa" style="background:white;">✏️ Edit</button> <button id="deleteCustomerBtn" class="btn-danger-wa btn-wa">Delete</button></div>
+                                </div>
+                                ${limitReached ? `<div class="credit-warning">⚠️ CREDIT LIMIT REACHED! No new orders until payment.</div>` : `<div class="pay-early">💡 ${debt>0 ? "Pay early to free credit" : "No balance – ready for orders"}</div>`}
+                                <div class="stat-grid" style="margin:16px 0;">
+                                    <div class="stat-box"><strong>Current Debt</strong><br><span style="font-size:1.6rem;">$${debt.toFixed(2)}</span></div>
+                                    <div class="stat-box"><strong>Total Orders</strong><br>${getOrderCount(selected.id)}</div>
+                                    <div class="stat-box"><strong>Loyalty</strong><br>${getOrderCount(selected.id)>=5 ? "🎁 Reward ready" : `${5-getOrderCount(selected.id)} to go`}</div>
+                                </div>
+                                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+                                    <button id="pdfSendWhatsAppBtn" class="btn-wa">📄 Send PDF via WhatsApp</button>
+                                    <button id="portalLinkBtn" class="btn-outline-wa btn-wa">🔗 Send Portal Link</button>
+                                    <button id="quickOrderBtn" class="btn-outline-wa btn-wa">🛒 Quick Order (to store)</button>
+                                </div>
+                                <hr>
+                                <h3>➕ Add WhatsApp Order</h3>
+                                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+                                    <input type="number" id="orderAmount" placeholder="Amount $" step="0.01" style="flex:1; padding:10px; border-radius:40px; border:1px solid #ddd;">
+                                    <input type="text" id="orderDesc" placeholder="Item description" style="flex:2; padding:10px; border-radius:40px; border:1px solid #ddd;">
+                                    <button id="addOrderBtn" class="btn-wa" ${limitReached ? 'disabled' : ''}>➕ Add Order</button>
+                                </div>
+                                <h3>💵 Record Payment</h3>
+                                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+                                    <input type="number" id="paymentAmount" placeholder="Amount $" step="0.01" style="flex:1; padding:10px; border-radius:40px;">
+                                    <input type="text" id="paymentNote" placeholder="Cash / UPI" style="flex:2; padding:10px; border-radius:40px;">
+                                    <button id="addPaymentBtn" class="btn-wa">💰 Add Payment</button>
+                                </div>
+                                <hr>
+                                <h3>📋 Order History</h3>
+                                <div id="orderHistoryList">${selectedOrders.map(o => `<div class="order-row"><div><strong>$${o.amount.toFixed(2)}</strong> - ${escapeHtml(o.description)}<br><span style="font-size:0.7rem;">${new Date(o.date).toLocaleString()}</span></div><div><button class="btn-icon" data-order-id="${o.id}" data-action="deleteOrder">🗑️</button></div></div>`).join('')}</div>
+                                <h3>🧾 Payment History</h3>
+                                <div id="paymentHistoryList">${selectedPayments.map(p => `<div class="payment-row"><div><strong>$${p.amount.toFixed(2)}</strong> - ${escapeHtml(p.note)}<br><span style="font-size:0.7rem;">${new Date(p.date).toLocaleString()}</span></div><div><button class="btn-icon" data-payment-id="${p.id}" data-action="deletePayment">🗑️</button></div></div>`).join('')}</div>
+                            ` : `<div style="text-align:center; padding: 40px;">👈 Select a customer to manage orders, credit & send invoices.</div>`}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function attachAdminEvents() {
+        document.querySelectorAll('.customer-item').forEach(el => {
+            el.addEventListener('click', () => { const id = parseInt(el.dataset.custId); if(id) { selectedCustomerId = id; renderApp(); } });
+        });
+        document.getElementById('addCustomerBtn')?.addEventListener('click', () => { let name = prompt("Full name:"); if(name) { let phone = prompt("Phone number (for WhatsApp):"); let limit = prompt("Credit limit USD:", "100"); addCustomer(name, phone, parseFloat(limit)||100); renderApp(); } });
+        document.getElementById('deleteCustomerBtn')?.addEventListener('click', () => { if(selectedCustomerId && deleteCustomer(selectedCustomerId)) renderApp(); });
+        document.getElementById('editCustomerBtn')?.addEventListener('click', () => { if(selectedCustomerId) { const c = customers.find(c=>c.id===selectedCustomerId); if(c) { let n = prompt("New name:", c.name); if(n) { let p = prompt("Phone:", c.phone); let l = prompt("Credit limit:", c.creditLimit); if(l) updateCustomer(selectedCustomerId, n, p, parseFloat(l)); renderApp(); } } } });
+        document.getElementById('settingsBtn')?.addEventListener('click', () => { let num = prompt("Store WhatsApp number (for order requests):", storeWhatsAppNumber); if(num !== null) { storeWhatsAppNumber = num.trim(); saveAllData(); alert("Saved"); } });
+        document.getElementById('addOrderBtn')?.addEventListener('click', () => { if(selectedCustomerId && !isCreditLimitReached(selectedCustomerId)) { let amt = document.getElementById('orderAmount')?.value; let desc = document.getElementById('orderDesc')?.value; if(amt && parseFloat(amt)>0) { addOrder(selectedCustomerId, parseFloat(amt), desc); renderApp(); } else alert("Valid amount"); } else if(selectedCustomerId && isCreditLimitReached(selectedCustomerId)) alert("Credit limit reached"); });
+        document.getElementById('addPaymentBtn')?.addEventListener('click', () => { let amt = document.getElementById('paymentAmount')?.value; let note = document.getElementById('paymentNote')?.value; if(amt && parseFloat(amt)>0 && selectedCustomerId) { addPayment(selectedCustomerId, parseFloat(amt), note); renderApp(); } });
+        document.getElementById('pdfSendWhatsAppBtn')?.addEventListener('click', async () => { const cust = customers.find(c=>c.id === selectedCustomerId); if(cust) await sendPDFviaWhatsApp(cust); });
+        document.getElementById('portalLinkBtn')?.addEventListener('click', () => { const cust = customers.find(c=>c.id === selectedCustomerId); if(cust) sendPortalLink(cust); });
+        document.getElementById('quickOrderBtn')?.addEventListener('click', () => { const cust = customers.find(c=>c.id === selectedCustomerId); if(cust) quickWhatsAppOrder(cust); });
+        document.querySelectorAll('[data-action="deleteOrder"]').forEach(btn => { btn.onclick = () => { const oid = parseInt(btn.dataset.orderId); if(oid && deleteOrder(oid, selectedCustomerId)) renderApp(); }; });
+        document.querySelectorAll('[data-action="deletePayment"]').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.paymentId); if(pid && deletePayment(pid)) renderApp(); }; });
+        const search = document.getElementById('customerSearch');
+        if(search) search.addEventListener('input', (e) => { const term = e.target.value.toLowerCase(); document.querySelectorAll('.customer-item').forEach(it => { it.style.display = it.innerText.toLowerCase().includes(term) ? 'flex' : 'none'; }); });
+    }
+
+    // ----- CUSTOMER PORTAL (standalone, no admin) -----
+    function renderCustomerPortal(initialPhone = "") {
+        return `
+        <div class="wa-container">
+            <div class="wa-card customer-portal-card">
+                <div class="wa-header">
+                    <h1>📱 Your Credit Account</h1>
+                </div>
+                <div style="padding: 24px;">
+                    <p style="margin-bottom: 16px;">Enter your phone number to see your live invoice (updated instantly by the store).</p>
+                    <input type="text" id="portalPhoneInput" placeholder="Phone number (e.g., +1234567890)" class="search-input" value="${escapeHtml(initialPhone)}">
+                    <button id="portalViewBtn" class="btn-wa" style="width:100%;">View My Invoice</button>
+                    <div id="portalResultArea" style="margin-top: 24px;"></div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function showCustomerData(phone) {
+        const customer = customers.find(c => c.phone === phone.trim());
+        const container = document.getElementById("portalResultArea");
+        if(!customer) { container.innerHTML = `<div class="whatsapp-bubble" style="background:#ffe6e6;">❌ No account found for ${escapeHtml(phone)}. Contact store.</div>`; return; }
+        const ordersList = getCustomerOrders(customer.id);
+        const paymentsList = getCustomerPayments(customer.id);
+        const debt = getTotalDebt(customer.id);
+        const limit = customer.creditLimit;
+        const remaining = limit - debt;
+        container.innerHTML = `
+            <div class="wa-card" style="padding:16px;">
+                <h3>🧾 ${escapeHtml(customer.name)}</h3>
+                <div class="stat-grid">
+                    <div class="stat-box"><strong>Due Now</strong><br><span style="font-size:1.4rem;">$${debt.toFixed(2)}</span></div>
+                    <div class="stat-box"><strong>Credit Limit</strong><br>$${limit}</div>
+                    <div class="stat-box"><strong>Remaining</strong><br>$${remaining.toFixed(2)}</div>
+                </div>
+                <div class="pay-early">${debt>0 ? "💸 Pay early to unlock more credit" : "✅ All paid. Thank you!"}</div>
+                <hr>
+                <h4>📦 Unpaid orders</h4>
+                ${ordersList.map(o => `<div class="order-row"><div><strong>$${o.amount.toFixed(2)}</strong> - ${escapeHtml(o.description)}<br><span style="font-size:0.7rem;">${new Date(o.date).toLocaleString()}</span></div></div>`).join('')}
+                <h4>💵 Payments made</h4>
+                ${paymentsList.map(p => `<div class="payment-row"><div>$${p.amount.toFixed(2)} - ${escapeHtml(p.note)}<br><span style="font-size:0.7rem;">${new Date(p.date).toLocaleString()}</span></div></div>`).join('')}
+                <div class="footer-note" style="margin-top:16px; font-size:0.75rem; color:#666;">📄 This invoice updates automatically. Bookmark this page to always see latest balance.</div>
+            </div>
+        `;
+    }
+
+    function attachCustomerEvents() {
+        document.getElementById('portalViewBtn')?.addEventListener('click', () => {
+            const phone = document.getElementById('portalPhoneInput')?.value;
+            if(phone) showCustomerData(phone);
+            else alert("Enter phone number");
+        });
+        // auto load if phone provided
+        const urlPhone = new URLSearchParams(window.location.search).get('phone');
+        if(urlPhone && document.getElementById('portalPhoneInput')) {
+            document.getElementById('portalPhoneInput').value = urlPhone;
+            showCustomerData(urlPhone);
+        }
+    }
+
+    // main router
+    function renderApp() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const customerPhoneParam = urlParams.get('phone');
+        if(customerPhoneParam) {
+            // CUSTOMER MODE: no admin, no login
+            const root = document.getElementById('rootApp');
+            root.innerHTML = renderCustomerPortal(customerPhoneParam);
+            attachCustomerEvents();
+            return;
+        }
+        // ADMIN MODE (requires login)
+        if(!adminLoggedIn) {
+            root.innerHTML = renderAdminLogin();
+            const loginBtn = document.getElementById('loginAdminBtn');
+            if(loginBtn) loginBtn.onclick = () => {
+                const pwd = document.getElementById('adminPassword')?.value;
+                if(pwd === "store123") { adminLoggedIn = true; renderApp(); }
+                else alert("Wrong password (demo: store123)");
+            };
+            return;
+        }
+        root.innerHTML = renderAdminDashboard();
+        attachAdminEvents();
+        const logout = document.getElementById('logoutAdminBtn');
+        if(logout) logout.onclick = () => { adminLoggedIn = false; selectedCustomerId = null; renderApp(); };
+    }
+
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    const root = document.getElementById('rootApp');
+    loadData();
+    renderApp();
+</script>
+</body>
+</html>
